@@ -6,17 +6,21 @@ During a call option, a buyer pays a premium to gain the option to buy the under
 pre-determined price, agreed with the seller. This is known as either the strike price or the exercise
 price. If the security's price is above the strike price by the expiration date, the buyer may wish to
 exercise their option by purchasing the security. Hence, they now own a stock for the value of the
-strike price minus the premium. So if strike price + premium < current security price, they have made
-a profit. Alternatively, if the security has decreased in price, then the buyer may choose not to buy
-it, as they have no such obligation. This results in them losing the money paid for the premium. Of
-course, any money made by the buyer is lost by the seller, and vice versa.
+strike price minus the premium. So if strike price + premium < spot price, they have made a profit.
+Alternatively, if the security has decreased in price, then the buyer may choose not to buy it, as
+they have no such obligation. This results in them losing the money paid for the premium. Of course,
+any money made by the buyer is lost by the seller, and vice versa.
 
 A put option is extremely similar to a call option, save that the buyer gains the right, but not
 obligation, to sell the underlying security. This right is given after paying the premium, as with
-call options. So buyers of put options make a profit if the security sufficiently decreases below the
-the strike price.
+call options. So buyers of put options make a profit if the security's value sufficiently decreases
+below the the strike price.
 
 With European options, the holder may only exercise their option on the expiration date. American
 options instead allow the holder to exercise their option at any point between the purchase date and
 the expiration date. As American options give the holder an increased degree of flexibility, they
 generally have higher premiums than European options.
+
+Due to the uncertain – and potentially lucrative – nature of options, pricing them is an extremely
+useful skill. This is achieved through options pricing models, which are predictive algorithms. One
+such example is with Monte Carlo simulations.
