@@ -1,6 +1,7 @@
-Options are a type of financial derivative, i.e. a contract between a buyer and seller. With options,
-investors may speculate on the price of a given security (a tradeable asset) at a later moment in time
-known as the expiration date. All options are either call options or put options.
+Options are a type of financial derivative, i.e. a contract between a buyer and seller. By using
+options, investors may speculate on the price of a given security (a tradeable asset) at a later
+moment in time known as the expiration date, without being obligated buy or sell this option. All
+options are either call options or put options.
 
 During a call option, a buyer pays a premium to gain the option to buy the underlying security at a
 pre-determined price, agreed with the seller. This is known as either the strike price or the exercise
@@ -23,4 +24,13 @@ generally have higher premiums than European options.
 
 Due to the uncertain – and potentially lucrative – nature of options, pricing them is an extremely
 useful skill. This is achieved through options pricing models, which are predictive algorithms. One
-such example is with Monte Carlo simulations.
+such example is with Monte Carlo modelling, which simulates the security's unpredictability with many
+random simulations before taking an average of these results.
+
+Specifically, we use Geometric Brownian Motion to replicate the drift and randomness of the underlying
+security. This requires a number of variables, such as the risk-free interest rate (denoted by 'r') or
+the the security's volatility (denoted by the Greek letter 'sigma'). The risk-free interest rate is
+the hypothetical rate of return on a completely safe investment; this is used as a benchmark for
+further investments, and is typically defined based on stable, government-issued securities.
+Volatility is a quantitative measurement of a security's uncertainty, i.e. the rate and strengths of
+its fluctuations over time.
