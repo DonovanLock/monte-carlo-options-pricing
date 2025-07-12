@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <random>
 #include <string>
@@ -38,70 +39,15 @@ struct OptionModel {
 
 const int n = 100000; // Number of simulations
 
-/*OptionModel monteCarloModel(OptionParams params) {
-
-    const int m = 252 * params.T; // Number of time steps
-    
-    double payoffSum = 0.0;
-    double payoffs[n];
-    double dt = params.T / m;
-
-    // Initialising our random variable generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine generator(seed);
-    std::normal_distribution<double> distribution(0.0, 1.0);
-
-    for (int i = 0; i < n; i++) {
-
-        double S = params.S0;
-
-        for (int j = 0; j < m; j++) {
-
-            double Z = distribution(generator); // Z ~ N(0,1)
-            S *= exp((params.r - (pow(params.sigma, 2) / 2.0)) * dt + params.sigma * sqrt(dt) * Z);
-
-        }
-
-        double payoff;
-
-        switch (params.optiontype) {
-
-            case OptionType::Call:
-                payoff = exp(-params.r * params.T) * std::max(S - params.K, 0.0);
-                break;
-            
-            case OptionType::Put:
-                payoff = exp(-params.r * params.T) * std::max(params.K - S, 0.0);
-                break;
-
-        }
-
-        payoffs[i] = payoff;
-        payoffSum += payoff;
-
-    }
-
-    double averagePayoff = payoffSum / n;
-    double squareSum = 0.0;
-
-    for (int i = 0; i < n; i++) {
-        squareSum += (payoffs[i] - averagePayoff) * (payoffs[i] - averagePayoff);
-    }
-
-    double sampleVariance = squareSum / (n - 1);
-    double estimatorVariance = sampleVariance / n;
-    double standardError = sqrt(estimatorVariance);
-
-    return { averagePayoff, standardError };
-
-}*/
-
 OptionModel monteCarloModel(OptionParams params) {
+
+    std::cout << std::endl;
 
     const int m = 252 * params.T; // Number of time steps
     std::vector<std::vector<double>> randomVariables(n, std::vector<double>(m));
     double payoffSum = 0.0;
     double payoffs[n];
+    const int nDigits = (int) log10 ((double) n) + 1;
 
     // Initialising our random variable generator
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -120,12 +66,13 @@ OptionModel monteCarloModel(OptionParams params) {
 
     }
 
-    auto approximatePrice = [&payoffs](OptionParams params, std::vector<std::vector<double>> randomVariables, double dt, bool overwritePayoffs = false) {
+    auto approximatePrice = [&payoffs, nDigits](OptionParams params, std::string logText, std::vector<std::vector<double>> randomVariables, double dt, bool overwritePayoffs = false) {
 
         double payoffSum = 0.0;
 
         for (int i = 0; i < randomVariables.size(); i++) {
 
+            std::cout << "\r" + logText + " (" << std::setw (nDigits) << std::to_string(i + 1) + "/" + std::to_string(n) + ")";
             double S = params.S0;
 
             for (int j = 0; j < randomVariables.at(0).size(); j++) {
@@ -141,7 +88,7 @@ OptionModel monteCarloModel(OptionParams params) {
                 case OptionType::Call:
                     payoff = exp(-params.r * params.T) * std::max(S - params.K, 0.0);
                     break;
-                
+
                 case OptionType::Put:
                     payoff = exp(-params.r * params.T) * std::max(params.K - S, 0.0);
                     break;
@@ -154,11 +101,12 @@ OptionModel monteCarloModel(OptionParams params) {
         }
 
         double averagePayoff = payoffSum / n;
+        std::cout << std::endl;
         return averagePayoff;
-    
+
     };
 
-    double averagePayoff = approximatePrice(params, randomVariables, params.T / m, true);
+    double averagePayoff = approximatePrice(params, "Approximating price", randomVariables, params.T / m, true);
     double squareSum = 0.0;
 
     for (int i = 0; i < n; i++) {
@@ -178,19 +126,19 @@ OptionModel monteCarloModel(OptionParams params) {
     const double deltaT = 1.0 / 365;
 
     const OptionParams increasedSpotPriceOption = { params.S0 + deltaS, params.K, params.T, params.r, params.sigma, params.optiontype };
-    const double increasedSpotPriceOptionValue = approximatePrice(increasedSpotPriceOption, randomVariables, params.T / m);
+    const double increasedSpotPriceOptionValue = approximatePrice(increasedSpotPriceOption, "Calculating delta", randomVariables, params.T / m);
     const double delta = (increasedSpotPriceOptionValue - averagePayoff) / deltaS;
 
     const OptionParams decreasedSpotPriceOption = { params.S0 - deltaS, params.K, params.T, params.r, params.sigma, params.optiontype };
-    const double decreasedSpotPriceOptionValue = approximatePrice(decreasedSpotPriceOption, randomVariables, params.T / m);
+    const double decreasedSpotPriceOptionValue = approximatePrice(decreasedSpotPriceOption, "Calculating gamma", randomVariables, params.T / m);
     const double gamma = (increasedSpotPriceOptionValue - (2 * averagePayoff) + decreasedSpotPriceOptionValue) / pow(deltaS, 2);
 
     const OptionParams increasedVolatilityOption = { params.S0, params.K, params.T, params.r, params.sigma + deltaSigma, params.optiontype };
-    const double increasedVolatilityOptionValue = approximatePrice(increasedVolatilityOption, randomVariables, params.T / m);
+    const double increasedVolatilityOptionValue = approximatePrice(increasedVolatilityOption, "Calculating vega", randomVariables, params.T / m);
     const double vega = (increasedVolatilityOptionValue - averagePayoff) / deltaSigma;
 
     const OptionParams increasedInterestRateOption = { params.S0, params.K, params.T, params.r + deltaR, params.sigma, params.optiontype };
-    const double increasedInterestRateOptionValue = approximatePrice(increasedInterestRateOption, randomVariables, params.T / m);
+    const double increasedInterestRateOptionValue = approximatePrice(increasedInterestRateOption, "Calculating rho", randomVariables, params.T / m);
     const double rho = (increasedInterestRateOptionValue - averagePayoff) / deltaR;
 
     const OptionParams increasedExpirationTimeOption = { params.S0, params.K, params.T + deltaT, params.r, params.sigma, params.optiontype };
@@ -218,7 +166,7 @@ OptionModel monteCarloModel(OptionParams params) {
 
     }
 
-    const double increasedExpirationTimeOptionValue = approximatePrice(increasedExpirationTimeOption, randomVariablesExtended, (params.T + deltaT) / m);
+    const double increasedExpirationTimeOptionValue = approximatePrice(increasedExpirationTimeOption, "Calculating theta", randomVariablesExtended, (params.T + deltaT) / m);
     const double theta = -((increasedExpirationTimeOptionValue - averagePayoff) / deltaT);
 
     OptionModel model;
@@ -232,21 +180,20 @@ OptionModel monteCarloModel(OptionParams params) {
 
 std::string modelToString(std::string name, OptionModel model) {
 
-    std::string output = "\n" + name + ":\n";
-    output += "  Estimated Option Price: " + std::to_string(model.averagePayoff) + "\n";
-    output += "          Standard Error: " + std::to_string(model.standardError) + "\n";
+    std::string output = name + ":\n\n";
+    output += "  Estimated Option Price | " + std::to_string(model.averagePayoff) + "\n";
+    output += "          Standard Error | " + std::to_string(model.standardError) + "\n";
 
     double confidenceMargin = 1.96 * model.standardError;
     double lowerBound = model.averagePayoff - confidenceMargin;
     double upperBound = model.averagePayoff + confidenceMargin;
 
-    output += "95% probability interval: (" + std::to_string(lowerBound) + ", " + std::to_string(upperBound) + ")\n";
-    output += "Greeks:\n";
-    output += "                   Delta: " + std::to_string(model.greeks.delta) + "\n";
-    output += "                   Gamma: " + std::to_string(model.greeks.gamma) + "\n";
-    output += "                    Vega: " + std::to_string(model.greeks.vega) + "\n";
-    output += "                     Rho: " + std::to_string(model.greeks.rho) + "\n";
-    output += "                   Theta: " + std::to_string(model.greeks.theta) + "\n";
+    output += "95% probability interval | (" + std::to_string(lowerBound) + ", " + std::to_string(upperBound) + ")\n\n";
+    output += "                   Delta | " + std::to_string(model.greeks.delta) + "\n";
+    output += "                   Gamma | " + std::to_string(model.greeks.gamma) + "\n";
+    output += "                    Vega | " + std::to_string(model.greeks.vega) + "\n";
+    output += "                     Rho | " + std::to_string(model.greeks.rho) + "\n";
+    output += "                   Theta | " + std::to_string(model.greeks.theta) + "\n";
 
     return output;
 
