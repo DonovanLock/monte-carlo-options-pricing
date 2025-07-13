@@ -1,14 +1,16 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <random>
 #include <string>
+#include <windows.h>
 
-enum class OptionType { Call, Put };
+const enum class OptionType { Call, Put };
 
-struct OptionParams {
+const struct OptionParams {
 
     double S0; // Spot price
     double K; // Strike/Exercise price
@@ -19,7 +21,7 @@ struct OptionParams {
 
 };
 
-struct Greeks {
+const struct Greeks {
 
     double delta;
     double gamma;
@@ -29,7 +31,7 @@ struct Greeks {
 
 };
 
-struct OptionModel {
+const struct OptionModel {
 
     double averagePayoff;
     double standardError;
@@ -43,6 +45,13 @@ OptionModel monteCarloModel(OptionParams params) {
 
     std::cout << std::endl;
 
+    // Get directory name
+    char buffer[_MAX_PATH];
+    GetModuleFileNameA(NULL, buffer, _MAX_PATH);
+    std::string fullPath(buffer);
+    size_t pos = fullPath.find_last_of("\\/");
+    std::string workingDirectory = (std::string::npos == pos) ? "" : fullPath.substr(0, pos);
+
     const int m = 252 * params.T; // Number of time steps
     std::vector<std::vector<double>> randomVariables(n, std::vector<double>(m));
     double payoffSum = 0.0;
@@ -50,7 +59,7 @@ OptionModel monteCarloModel(OptionParams params) {
     const int nDigits = (int) log10 ((double) n) + 1;
 
     // Initialising our random variable generator
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    const unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator(seed);
     std::normal_distribution<double> distribution(0.0, 1.0);
 
@@ -59,25 +68,43 @@ OptionModel monteCarloModel(OptionParams params) {
 
         for (int j = 0; j < m; j++) {
 
-            double Z = distribution(generator); // Z ~ N(0,1)
+            const double Z = distribution(generator); // Z ~ N(0,1)
             randomVariables[i][j] = Z;
 
         }
 
     }
 
-    auto approximatePrice = [&payoffs, nDigits](OptionParams params, std::string logText, std::vector<std::vector<double>> randomVariables, double dt, bool overwritePayoffs = false) {
+    // Creating file to store graph data in
+    std::string dataFileName = workingDirectory + "\\" + "graphData.csv";
+    std::ofstream GraphData(dataFileName);
+
+    auto approximatePrice = [&payoffs, nDigits, &GraphData](OptionParams params, std::string logText, std::vector<std::vector<double>> randomVariables, double dt, bool originalOption = false) {
 
         double payoffSum = 0.0;
+        const int graphedPaths = 100;
 
         for (int i = 0; i < randomVariables.size(); i++) {
 
             std::cout << "\r" + logText + " (" << std::setw (nDigits) << std::to_string(i + 1) + "/" + std::to_string(n) + ")";
+            const bool graphPath = i < graphedPaths && originalOption;
             double S = params.S0;
 
             for (int j = 0; j < randomVariables.at(0).size(); j++) {
 
+                if (graphPath) {
+
+                    GraphData << std::to_string(S) + ",";
+
+                }
+
                 S *= exp((params.r - (pow(params.sigma, 2) / 2.0)) * dt + params.sigma * sqrt(dt) * randomVariables[i][j]);
+
+            }
+
+            if (graphPath) {
+
+                    GraphData << std::to_string(S) + "\n";
 
             }
 
@@ -86,27 +113,37 @@ OptionModel monteCarloModel(OptionParams params) {
             switch (params.optiontype) {
 
                 case OptionType::Call:
-                    payoff = exp(-params.r * params.T) * std::max(S - params.K, 0.0);
+                    payoff = std::exp(-params.r * params.T) * (S - params.K > 0.0 ? S - params.K : 0.0);
                     break;
 
                 case OptionType::Put:
-                    payoff = exp(-params.r * params.T) * std::max(params.K - S, 0.0);
+                    payoff = std::exp(-params.r * params.T) * (params.K - S > 0.0 ? params.K - S : 0.0);
                     break;
 
             }
 
-            payoffs[i] = payoff;
+            if (originalOption) {
+            
+                payoffs[i] = payoff;
+            
+            }
+
             payoffSum += payoff;
 
         }
 
-        double averagePayoff = payoffSum / n;
+        const double averagePayoff = payoffSum / n;
         std::cout << std::endl;
         return averagePayoff;
 
     };
 
-    double averagePayoff = approximatePrice(params, "Approximating price", randomVariables, params.T / m, true);
+    const double averagePayoff = approximatePrice(params, "Approximating price", randomVariables, params.T / m, true);
+    GraphData.close();
+
+    std::string graphFileName = workingDirectory + "\\" + "graphPlotter.py";
+    std::string graphCommand = "start /B python3 " + graphFileName;
+    system(graphCommand.c_str());
     double squareSum = 0.0;
 
     for (int i = 0; i < n; i++) {
@@ -115,9 +152,9 @@ OptionModel monteCarloModel(OptionParams params) {
 
     }
 
-    double sampleVariance = squareSum / (n - 1);
-    double estimatorVariance = sampleVariance / n;
-    double standardError = sqrt(estimatorVariance);
+    const double sampleVariance = squareSum / (n - 1);
+    const double estimatorVariance = sampleVariance / n;
+    const double standardError = sqrt(estimatorVariance);
 
     // Calculating Greeks
     const double deltaS = params.S0 * 0.001;
@@ -157,7 +194,7 @@ OptionModel monteCarloModel(OptionParams params) {
 
             else {
 
-                double Z = distribution(generator); // Z ~ N(0,1)
+                const double Z = distribution(generator); // Z ~ N(0,1)
                 randomVariablesExtended[i][j] = Z;
 
             }
@@ -184,9 +221,9 @@ std::string modelToString(std::string name, OptionModel model) {
     output += "  Estimated Option Price | " + std::to_string(model.averagePayoff) + "\n";
     output += "          Standard Error | " + std::to_string(model.standardError) + "\n";
 
-    double confidenceMargin = 1.96 * model.standardError;
-    double lowerBound = model.averagePayoff - confidenceMargin;
-    double upperBound = model.averagePayoff + confidenceMargin;
+    const double confidenceMargin = 1.96 * model.standardError;
+    const double lowerBound = model.averagePayoff - confidenceMargin;
+    const double upperBound = model.averagePayoff + confidenceMargin;
 
     output += "95% probability interval | (" + std::to_string(lowerBound) + ", " + std::to_string(upperBound) + ")\n\n";
     output += "                   Delta | " + std::to_string(model.greeks.delta) + "\n";

@@ -57,6 +57,12 @@
         "iomanip": "cpp",
         "ratio": "cpp",
         "sstream": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "fstream": "cpp",
+        "complex": "cpp",
+        "filesystem": "cpp",
+        "mutex": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp"
     }
 }
