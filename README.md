@@ -7,7 +7,9 @@ following parameters are required:
 - Volatility
 - Option type (call or sell)
 
-The program then generates many price paths with Geometric Brownian motion, in order to approximate
-the option's price. It also returns a graph of these paths and calculates some relevant Greeks (delta, gamma, vega, rho, and theta).
+The program then generates many price paths with Geometric Brownian motion, before returning an estimated price and a graph of these paths.
+![Graph of many simulated price paths over time](/graph.png)
+
+It calculates some relevant Greeks (delta, gamma, vega, rho, and theta).
 
 For an explanation of the methodology or mathematics involved, click [here](definitions.md).
