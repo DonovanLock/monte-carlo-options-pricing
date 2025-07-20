@@ -238,12 +238,9 @@ std::string modelToString(std::string name, OptionModel model) {
 
 int main() {
 
-    OptionParams callOption { 100, 100, 1, 0.05, 0.2, OptionType::Call };
-    OptionParams putOption { 100, 100, 1, 0.05, 0.2, OptionType::Put };
-    OptionModel callModel = monteCarloModel(callOption); // Expecting ~38
-    std::cout << std::endl << modelToString("Call option", callModel);
-    OptionModel putModel = monteCarloModel(putOption); // Expecting ~3
-    std::cout << modelToString("Put option", putModel);
+    OptionParams amazonOption { 226.13, 235, 1.164, 0.044, 0.2866, OptionType::Call };
+    OptionModel amazonModel = monteCarloModel(amazonOption); // Expecting ~38
+    std::cout << std::endl << modelToString("Call option", amazonModel);
     return 0;
 
 }
