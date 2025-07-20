@@ -1,3 +1,5 @@
+# Definitions
+## Options
 Options are a type of financial derivative, i.e. a contract between a buyer and seller. By using
 options, investors may speculate on the price of a given security (a tradeable asset) at a later
 moment in time known as the expiration date, without being obligated buy or sell this option. All
@@ -22,6 +24,7 @@ options instead allow the holder to exercise their option at any point between t
 the expiration date. As American options give the holder an increased degree of flexibility, they
 generally have higher premiums than European options.
 
+## Monte Carlo modelling
 Due to the uncertain – and potentially lucrative – nature of options, pricing them is an extremely
 useful skill. This is achieved through options pricing models, which are predictive algorithms. One
 such example is with Monte Carlo modelling, which simulates the security's unpredictability with many
@@ -34,3 +37,20 @@ the hypothetical rate of return on a completely safe investment; this is used as
 further investments, and is typically defined based on stable, government-issued securities.
 Volatility is a quantitative measurement of a security's uncertainty, i.e. the rate and strengths of
 its fluctuations over time.
+
+As Monte Carlo modelling uses a large number of simulations, we are also able to apply the Central
+Limit Theorem in order to give us a confidence bound. Specifically, this program outputs not just an
+estimate for the option's value, but also an interval which has roughly a 95% probability of
+containing the option's true price.
+
+## Risk analysis
+To quantify how sensitive an option is to different factors, we use partial derivatives to analyse
+how sensitive its price is to certain parameters such as volatility or the spot price. These values
+are called the Greeks, and this program outputs the five Greeks that are most useful for options
+pricing:
+
+- Delta: the derivative of the option value with respect to the spot price.
+- Gamma: the second derivative of the option value with respect to the spot price.
+- Vega: the derivative of the option value with respect to the volatility.
+- Rho: the derivative of the option value with respect to the risk-free interest rate.
+- Theta: the derivative of the option value with respect to the time to expiry, multiplied by negative one.
