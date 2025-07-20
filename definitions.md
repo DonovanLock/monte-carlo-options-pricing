@@ -53,4 +53,10 @@ pricing:
 - Gamma: the second derivative of the option value with respect to the spot price.
 - Vega: the derivative of the option value with respect to the volatility.
 - Rho: the derivative of the option value with respect to the risk-free interest rate.
-- Theta: the derivative of the option value with respect to the time to expiry, multiplied by negative one.
+- Theta: the derivative of the option value with respect to the time to expiry, multiplied by -1.
+
+## Variance reduction
+Due to the use of random variables, a degree of variance is unavoidable in Monte Carlo modelling.
+However, we can minimise this variance with variance reduction techniques. One example is the
+antithetic variates method, wherein we construct paths with negative covariance and take their average
+payoff. This minimises variance due to the formula for the variance of a sum of two random variables. 

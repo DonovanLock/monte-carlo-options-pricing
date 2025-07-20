@@ -89,6 +89,7 @@ OptionModel monteCarloModel(OptionParams params) {
             std::cout << "\r" + logText + " (" << std::setw (nDigits) << std::to_string(i + 1) + "/" + std::to_string(n) + ")";
             const bool graphPath = i < graphedPaths && originalOption;
             double S = params.S0;
+            double antiS = params.S0; // Preparing antithetic path
 
             for (int j = 0; j < randomVariables.at(0).size(); j++) {
 
@@ -98,7 +99,9 @@ OptionModel monteCarloModel(OptionParams params) {
 
                 }
 
-                S *= exp((params.r - (pow(params.sigma, 2) / 2.0)) * dt + params.sigma * sqrt(dt) * randomVariables[i][j]);
+                const double Z = randomVariables[i][j];
+                S *= exp((params.r - (pow(params.sigma, 2) / 2.0)) * dt + params.sigma * sqrt(dt) * Z);
+                antiS *= exp((params.r - (pow(params.sigma, 2) / 2.0)) * dt + params.sigma * sqrt(dt) * -Z);
 
             }
 
@@ -108,19 +111,24 @@ OptionModel monteCarloModel(OptionParams params) {
 
             }
 
-            double payoff;
+            double originalPayoff;
+            double antitheticPayoff;
 
             switch (params.optiontype) {
 
                 case OptionType::Call:
-                    payoff = std::exp(-params.r * params.T) * (S - params.K > 0.0 ? S - params.K : 0.0);
+                    originalPayoff = std::exp(-params.r * params.T) * (S - params.K > 0.0 ? S - params.K : 0.0);
+                    antitheticPayoff = std::exp(-params.r * params.T) * (antiS - params.K > 0.0 ? antiS - params.K : 0.0);
                     break;
 
                 case OptionType::Put:
-                    payoff = std::exp(-params.r * params.T) * (params.K - S > 0.0 ? params.K - S : 0.0);
+                    originalPayoff = std::exp(-params.r * params.T) * (params.K - S > 0.0 ? params.K - S : 0.0);
+                    antitheticPayoff = std::exp(-params.r * params.T) * (params.K - antiS > 0.0 ? params.K - antiS : 0.0);
                     break;
 
             }
+
+            double payoff = 0.5 * (originalPayoff + antitheticPayoff);
 
             if (originalOption) {
             
