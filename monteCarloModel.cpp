@@ -7,41 +7,11 @@
 #include <random>
 #include <string>
 #include <windows.h>
-
-const enum class OptionType { Call, Put };
-
-const struct OptionParams {
-
-    double S0; // Spot price
-    double K; // Strike/Exercise price
-    double T; // Time to expiry
-    double r; // Risk-free interest rate
-    double sigma; // Volatility
-    OptionType optiontype; // Call or Sell
-
-};
-
-const struct Greeks {
-
-    double delta;
-    double gamma;
-    double vega;
-    double rho;
-    double theta;
-
-};
-
-const struct OptionModel {
-
-    double averagePayoff;
-    double standardError;
-    Greeks greeks;
-
-};
+#include "OptionTypes.h"
 
 const int n = 100000; // Number of simulations
 
-OptionModel monteCarloModel(OptionParams params) {
+OptionResult monteCarloModel(OptionParams params) {
 
     std::cout << std::endl;
 
@@ -52,7 +22,7 @@ OptionModel monteCarloModel(OptionParams params) {
     size_t pos = fullPath.find_last_of("\\/");
     std::string workingDirectory = (std::string::npos == pos) ? "" : fullPath.substr(0, pos);
 
-    const int m = 252 * params.T; // Number of time steps
+    const int m = 252 * params.timeToMaturity; // Number of time steps
     std::vector<std::vector<double>> randomVariables(n, std::vector<double>(m));
     double payoffSum = 0.0;
     double payoffs[n];
@@ -88,8 +58,8 @@ OptionModel monteCarloModel(OptionParams params) {
 
             std::cout << "\r" + logText + " (" << std::setw (nDigits) << std::to_string(i + 1) + "/" + std::to_string(n) + ")";
             const bool graphPath = i < graphedPaths && originalOption;
-            double S = params.S0;
-            double antiS = params.S0; // Preparing antithetic path
+            double S = params.spotPrice;
+            double antiS = params.spotPrice; // Preparing antithetic path
 
             for (int j = 0; j < randomVariables.at(0).size(); j++) {
 
@@ -100,30 +70,30 @@ OptionModel monteCarloModel(OptionParams params) {
                 }
 
                 const double Z = randomVariables[i][j];
-                S *= exp((params.r - (pow(params.sigma, 2) / 2.0)) * dt + params.sigma * sqrt(dt) * Z);
-                antiS *= exp((params.r - (pow(params.sigma, 2) / 2.0)) * dt + params.sigma * sqrt(dt) * -Z);
+                S *= exp((params.riskFreeRate - (pow(params.volatility, 2) / 2.0)) * dt + params.volatility * sqrt(dt) * Z);
+                antiS *= exp((params.riskFreeRate - (pow(params.volatility, 2) / 2.0)) * dt + params.volatility * sqrt(dt) * -Z);
 
             }
 
             if (graphPath) {
 
-                    GraphData << std::to_string(S) + "\n";
+                GraphData << std::to_string(S) + "\n";
 
             }
 
             double originalPayoff;
             double antitheticPayoff;
 
-            switch (params.optiontype) {
+            switch (params.optionType) {
 
                 case OptionType::Call:
-                    originalPayoff = std::exp(-params.r * params.T) * (S - params.K > 0.0 ? S - params.K : 0.0);
-                    antitheticPayoff = std::exp(-params.r * params.T) * (antiS - params.K > 0.0 ? antiS - params.K : 0.0);
+                    originalPayoff = std::exp(-params.riskFreeRate * params.timeToMaturity) * (S - params.strikePrice > 0.0 ? S - params.strikePrice : 0.0);
+                    antitheticPayoff = std::exp(-params.riskFreeRate * params.timeToMaturity) * (antiS - params.strikePrice > 0.0 ? antiS - params.strikePrice : 0.0);
                     break;
 
                 case OptionType::Put:
-                    originalPayoff = std::exp(-params.r * params.T) * (params.K - S > 0.0 ? params.K - S : 0.0);
-                    antitheticPayoff = std::exp(-params.r * params.T) * (params.K - antiS > 0.0 ? params.K - antiS : 0.0);
+                    originalPayoff = std::exp(-params.riskFreeRate * params.timeToMaturity) * (params.strikePrice - S > 0.0 ? params.strikePrice - S : 0.0);
+                    antitheticPayoff = std::exp(-params.riskFreeRate * params.timeToMaturity) * (params.strikePrice - antiS > 0.0 ? params.strikePrice - antiS : 0.0);
                     break;
 
             }
@@ -146,7 +116,7 @@ OptionModel monteCarloModel(OptionParams params) {
 
     };
 
-    const double averagePayoff = approximatePrice(params, "Approximating price", randomVariables, params.T / m, true);
+    const double averagePayoff = approximatePrice(params, "Approximating price", randomVariables, params.timeToMaturity / m, true);
     GraphData.close();
 
     std::string graphFileName = workingDirectory + "\\" + "graphPlotter.py";
@@ -165,29 +135,29 @@ OptionModel monteCarloModel(OptionParams params) {
     const double standardError = sqrt(estimatorVariance);
 
     // Calculating Greeks
-    const double deltaS = params.S0 * 0.001;
+    const double deltaS = params.spotPrice * 0.001;
     const double deltaSigma = 0.01;
     const double deltaR = 0.001;
     const double deltaT = 1.0 / 365;
 
-    const OptionParams increasedSpotPriceOption = { params.S0 + deltaS, params.K, params.T, params.r, params.sigma, params.optiontype };
-    const double increasedSpotPriceOptionValue = approximatePrice(increasedSpotPriceOption, "Calculating delta", randomVariables, params.T / m);
+    const OptionParams increasedSpotPriceOption = { params.spotPrice + deltaS, params.strikePrice, params.timeToMaturity, params.riskFreeRate, params.volatility, params.optionType };
+    const double increasedSpotPriceOptionValue = approximatePrice(increasedSpotPriceOption, "Calculating delta", randomVariables, params.timeToMaturity / m);
     const double delta = (increasedSpotPriceOptionValue - averagePayoff) / deltaS;
 
-    const OptionParams decreasedSpotPriceOption = { params.S0 - deltaS, params.K, params.T, params.r, params.sigma, params.optiontype };
-    const double decreasedSpotPriceOptionValue = approximatePrice(decreasedSpotPriceOption, "Calculating gamma", randomVariables, params.T / m);
+    const OptionParams decreasedSpotPriceOption = { params.spotPrice - deltaS, params.strikePrice, params.timeToMaturity, params.riskFreeRate, params.volatility, params.optionType };
+    const double decreasedSpotPriceOptionValue = approximatePrice(decreasedSpotPriceOption, "Calculating gamma", randomVariables, params.timeToMaturity / m);
     const double gamma = (increasedSpotPriceOptionValue - (2 * averagePayoff) + decreasedSpotPriceOptionValue) / pow(deltaS, 2);
 
-    const OptionParams increasedVolatilityOption = { params.S0, params.K, params.T, params.r, params.sigma + deltaSigma, params.optiontype };
-    const double increasedVolatilityOptionValue = approximatePrice(increasedVolatilityOption, "Calculating vega", randomVariables, params.T / m);
+    const OptionParams increasedVolatilityOption = { params.spotPrice, params.strikePrice, params.timeToMaturity, params.riskFreeRate, params.volatility + deltaSigma, params.optionType };
+    const double increasedVolatilityOptionValue = approximatePrice(increasedVolatilityOption, "Calculating vega", randomVariables, params.timeToMaturity / m);
     const double vega = (increasedVolatilityOptionValue - averagePayoff) / deltaSigma;
 
-    const OptionParams increasedInterestRateOption = { params.S0, params.K, params.T, params.r + deltaR, params.sigma, params.optiontype };
-    const double increasedInterestRateOptionValue = approximatePrice(increasedInterestRateOption, "Calculating rho", randomVariables, params.T / m);
+    const OptionParams increasedInterestRateOption = { params.spotPrice, params.strikePrice, params.timeToMaturity, params.riskFreeRate + deltaR, params.volatility, params.optionType };
+    const double increasedInterestRateOptionValue = approximatePrice(increasedInterestRateOption, "Calculating rho", randomVariables, params.timeToMaturity / m);
     const double rho = (increasedInterestRateOptionValue - averagePayoff) / deltaR;
 
-    const OptionParams increasedExpirationTimeOption = { params.S0, params.K, params.T + deltaT, params.r, params.sigma, params.optiontype };
-    const int increasedNumberOfSteps = 252 * increasedExpirationTimeOption.T;
+    const OptionParams increasedExpirationTimeOption = { params.spotPrice, params.strikePrice, params.timeToMaturity + deltaT, params.riskFreeRate, params.volatility, params.optionType };
+    const int increasedNumberOfSteps = 252 * increasedExpirationTimeOption.timeToMaturity;
     std::vector<std::vector<double>> randomVariablesExtended(n, std::vector<double>(increasedNumberOfSteps));
 
     for (int i = 0; i < n; i++) {
@@ -211,10 +181,10 @@ OptionModel monteCarloModel(OptionParams params) {
 
     }
 
-    const double increasedExpirationTimeOptionValue = approximatePrice(increasedExpirationTimeOption, "Calculating theta", randomVariablesExtended, (params.T + deltaT) / m);
+    const double increasedExpirationTimeOptionValue = approximatePrice(increasedExpirationTimeOption, "Calculating theta", randomVariablesExtended, (params.timeToMaturity + deltaT) / m);
     const double theta = -((increasedExpirationTimeOptionValue - averagePayoff) / deltaT);
 
-    OptionModel model;
+    OptionResult model;
     model.averagePayoff = averagePayoff;
     model.standardError = standardError;
     model.greeks = { delta, gamma, vega, rho, theta };
@@ -223,7 +193,7 @@ OptionModel monteCarloModel(OptionParams params) {
 
 }
 
-std::string modelToString(std::string name, OptionModel model) {
+std::string modelToString(std::string name, OptionResult model) {
 
     std::string output = name + ":\n\n";
     output += "  Estimated Option Price | " + std::to_string(model.averagePayoff) + "\n";
@@ -247,7 +217,7 @@ std::string modelToString(std::string name, OptionModel model) {
 int main() {
 
     OptionParams amazonOption { 226.13, 235, 1.164, 0.044, 0.2866, OptionType::Call };
-    OptionModel amazonModel = monteCarloModel(amazonOption); // Expecting ~38
+    OptionResult amazonModel = monteCarloModel(amazonOption); // Expecting ~38
     std::cout << std::endl << modelToString("Call option", amazonModel);
     return 0;
 

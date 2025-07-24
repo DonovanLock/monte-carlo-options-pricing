@@ -15,4 +15,4 @@ The program then generates many price paths with Geometric Brownian motion, befo
 It also calculates some relevant Greeks (delta, gamma, vega, rho, and theta), and uses the antithetic
 variates method to reduce variance.
 
-For an overview of the concepts, methodology, or mathematics involved, click [here](definitions.md).
+For an overview of the concepts, methodology, and mathematics involved, click [here](definitions.md).
