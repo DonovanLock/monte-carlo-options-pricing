@@ -13,8 +13,6 @@ constexpr double VOLATILITY_JUMP = 0.01;
 constexpr double RISK_FREE_RATE_JUMP = 0.001;
 constexpr double TIME_TO_MATURITY_JUMP = 1.0 / 365;
 
-std::filesystem::path getWorkingDirectory();
-
 std::vector<std::vector<double>> generateRandomNormals(int numSimulations, int numSteps);
 
 std::tuple<double, double> simulatePath(const OptionParams& params, const std::vector<double>& randomNormals, std::string& graphData, bool graphPath);

@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
-workingDirectory = Path(__file__).parent
-dataFileName = workingDirectory / "graphData.csv"
+rootDirectory = Path(__file__).parent.parent
+dataFileName = rootDirectory / "output" / "graphData.csv"
 data = np.loadtxt(dataFileName, delimiter=",")
 timeSteps = data.shape[1]
 time = np.arange(timeSteps)
@@ -15,6 +15,6 @@ plt.gca().set_xlim([0,timeSteps-1])
 plt.xlabel("Days")
 plt.ylabel("Simulated Security Price")
 plt.title("Monte Carlo Simulated Price Paths")
-graphFileName = workingDirectory / "graph.png"
+graphFileName = rootDirectory / "output" / "graph.png"
 plt.savefig(graphFileName, bbox_inches="tight")
 plt.show()

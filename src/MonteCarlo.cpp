@@ -1,15 +1,10 @@
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <numeric>
 #include <random>
 #include <string>
 #include "MonteCarlo.h"
-
-std::filesystem::path getWorkingDirectory() {
-    const std::filesystem::path filePath = __FILE__;
-    return filePath.parent_path();
-}
+#include "Utils.h"
 
 std::vector<std::vector<double>> generateRandomNormals(int numSimulations, int numSteps) {
     std::vector<std::vector<double>> randomNormals(numSimulations, std::vector<double>(numSteps));
@@ -87,13 +82,11 @@ std::vector<double> simulatePayoffs(const OptionParams& params, const std::vecto
     }
 
     if (graphPaths) {
-        std::filesystem::path graphDataFileName = getWorkingDirectory() / "graphData.csv";
+        std::filesystem::path graphDataFileName = getRootDirectory() / "output" / "graphData.csv";
         std::ofstream graphDataFile(graphDataFileName);
         graphDataFile << graphData;
         graphDataFile.close();
-        std::filesystem::path graphFileName = getWorkingDirectory() / "graphPlotter.py";
-        std::string graphCommand = "start /B python3 " + graphFileName.string();
-        system(graphCommand.c_str());
+        runGraphPlotter();
     }
 
     return payoffSamples;
