@@ -10,7 +10,7 @@ std::vector<std::vector<double>> generateRandomNormals(int numSimulations, int n
     std::vector<std::vector<double>> randomNormals(numSimulations, std::vector<double>(numSteps));
     
     // Initialising our random variable generator
-    const unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    const unsigned seed = unsigned int (std::chrono::system_clock::now().time_since_epoch().count());
     std::default_random_engine generator(seed);
     std::normal_distribution<double> distribution(0.0, 1.0);
     
@@ -71,8 +71,7 @@ double calculatePayoff(const OptionParams& params, std::tuple<double, double> si
 }
 
 std::vector<double> simulatePayoffs(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, bool graphPaths) {
-    int numSimulations = randomNormals.size();
-    int numSteps = randomNormals[0].size();
+    int numSimulations = int (randomNormals.size());
     std::vector<double> payoffSamples(numSimulations);
     std::string graphData = "";
 
@@ -82,7 +81,9 @@ std::vector<double> simulatePayoffs(const OptionParams& params, const std::vecto
     }
 
     if (graphPaths) {
-        std::filesystem::path graphDataFileName = getRootDirectory() / "output" / "graphData.csv";
+        std::filesystem::path outputDirectory = getRootDirectory() / "output";
+        std::filesystem::create_directories(outputDirectory);
+        std::filesystem::path graphDataFileName = outputDirectory / "graphData.csv";
         std::ofstream graphDataFile(graphDataFileName);
         graphDataFile << graphData;
         graphDataFile.close();
@@ -143,8 +144,8 @@ double calculateTheta(const OptionParams& params, const std::vector<std::vector<
     OptionParams timeToMaturityUpOption = params;
     timeToMaturityUpOption.timeToMaturity = params.timeToMaturity + TIME_TO_MATURITY_JUMP;
 
-    const int numSteps = randomNormals[0].size();
-    const int increasedNumSteps = NUM_YEARLY_WORKING_DAYS * timeToMaturityUpOption.timeToMaturity;
+    const int numSteps = int (randomNormals[0].size());
+    const int increasedNumSteps = int (NUM_YEARLY_WORKING_DAYS * timeToMaturityUpOption.timeToMaturity);
 
     std::vector<std::vector<double>> extraRandomNormals = generateRandomNormals(NUM_SIMULATIONS, increasedNumSteps - numSteps);
     std::vector<std::vector<double>> randomNormalsExtended(NUM_SIMULATIONS, std::vector<double>(increasedNumSteps));
@@ -176,8 +177,8 @@ Greeks calculateGreeks(const OptionParams& params, const std::vector<std::vector
     return { delta, gamma, vega, rho, theta };
 }
 
-OptionResult runMonteCarloSimulation(const OptionParams& params, int numSimulations = NUM_SIMULATIONS) {
-    const double numSteps = params.timeToMaturity * NUM_YEARLY_WORKING_DAYS;
+OptionResult runMonteCarloSimulation(const OptionParams& params) {
+    const int numSteps = int (params.timeToMaturity * NUM_YEARLY_WORKING_DAYS);
     std::vector<std::vector<double>> randomNormals = generateRandomNormals(NUM_SIMULATIONS, numSteps);
     std::vector<double> payoffSamples = simulatePayoffs(params, randomNormals, true);
 

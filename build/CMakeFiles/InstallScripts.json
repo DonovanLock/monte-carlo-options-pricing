@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Repos/monte-carlo-options-pricing/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

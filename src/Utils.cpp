@@ -32,7 +32,6 @@ void runGraphPlotter() {
         });
 
         asyncThread.detach();
-        std::cout << "Launched graphPlotter.py asynchronously." << std::endl;
     }
     catch (const std::exception& error) {
         std::cerr << "Exception while launching graphPlotter.py: " << error.what() << "." << std::endl;

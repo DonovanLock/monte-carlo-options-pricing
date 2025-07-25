@@ -33,4 +33,4 @@ double calculateTheta(const OptionParams& params, const std::vector<std::vector<
 
 Greeks calculateGreeks(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, double optionPrice);
 
-OptionResult runMonteCarloSimulation(const OptionParams& params, int numSimulations = NUM_SIMULATIONS);
+OptionResult runMonteCarloSimulation(const OptionParams& params);
