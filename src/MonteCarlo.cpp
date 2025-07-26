@@ -80,12 +80,12 @@ std::vector<double> simulatePayoffs(const OptionParams& params, const std::vecto
     for (int i = 0; i < numSimulations; i++) {
         if (percentageComplete < (int) (i) * 100 / numSimulations) {
             percentageComplete = (i) * 100 / numSimulations;
-            outputRow(logText, "\033[33m" + std::to_string(percentageComplete) + "%\033[0m", true);
+            std::cout << "\r" + logText + " (\033[33m" + std::to_string(percentageComplete) + "%\033[0m)";
         }
         std::tuple<double, double> finalPrices = simulatePath(params, randomNormals[i], graphData, i < NUM_GRAPHED_PATHS && graphPaths);
         payoffSamples[i] = calculatePayoff(params, finalPrices);
     }
-    outputRow(logText, "\033[32m100%\033[0m", true);
+    std::cout << "\r" + logText + " (\033[32m100%\033[0m)";
     std::cout << std::endl;
 
     if (graphPaths) {
@@ -137,7 +137,7 @@ std::tuple<double, double> calculateDeltaAndGamma(const OptionParams& params, co
 double calculateVega(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, double optionPrice) {
     OptionParams volatilityUpOption = params;
     volatilityUpOption.volatility = params.volatility + VOLATILITY_JUMP;
-    std::vector<double> volatilityUpPayoffSamples = simulatePayoffs(volatilityUpOption, randomNormals, false, "Calculating vega");
+    std::vector<double> volatilityUpPayoffSamples = simulatePayoffs(volatilityUpOption, randomNormals, false, "Calculating vega ");
     double averageVolatilityUpPayoff = std::accumulate(volatilityUpPayoffSamples.begin(), volatilityUpPayoffSamples.end(), 0.0) / volatilityUpPayoffSamples.size();
     double vega = (averageVolatilityUpPayoff - optionPrice) / VOLATILITY_JUMP;
 
@@ -147,7 +147,7 @@ double calculateVega(const OptionParams& params, const std::vector<std::vector<d
 double calculateRho(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, double optionPrice) {
     OptionParams riskFreeRateUpOption = params;
     riskFreeRateUpOption.riskFreeRate = params.riskFreeRate + RISK_FREE_RATE_JUMP;
-    std::vector<double> riskFreeRateUpPayoffSamples = simulatePayoffs(riskFreeRateUpOption, randomNormals, false, "Calculating rho");
+    std::vector<double> riskFreeRateUpPayoffSamples = simulatePayoffs(riskFreeRateUpOption, randomNormals, false, "Calculating rho  ");
     double averageRiskFreeRateUpPayoff = std::accumulate(riskFreeRateUpPayoffSamples.begin(), riskFreeRateUpPayoffSamples.end(), 0.0) / riskFreeRateUpPayoffSamples.size();
     double rho = (averageRiskFreeRateUpPayoff - optionPrice) / RISK_FREE_RATE_JUMP;
 
@@ -194,7 +194,7 @@ Greeks calculateGreeks(const OptionParams& params, const std::vector<std::vector
 OptionResult runMonteCarloSimulation(const OptionParams& params) {
     const int numSteps = int (params.timeToMaturity * NUM_YEARLY_WORKING_DAYS);
     std::vector<std::vector<double>> randomNormals = generateRandomNormals(NUM_SIMULATIONS, numSteps);
-    std::vector<double> payoffSamples = simulatePayoffs(params, randomNormals, true, "Simulating paths");
+    std::vector<double> payoffSamples = simulatePayoffs(params, randomNormals, true, "Simulating paths ");
 
     const double averagePayoff = std::accumulate(payoffSamples.begin(), payoffSamples.end(), 0.0) / payoffSamples.size();
     const double standardError = calculateStandardError(payoffSamples, averagePayoff);
