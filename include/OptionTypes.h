@@ -22,5 +22,6 @@ struct Greeks {
 struct OptionResult {
     double averagePayoff;
     double standardError;
+    std::tuple<double, double> confidenceInterval;
     Greeks greeks;
 };

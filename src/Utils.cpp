@@ -1,6 +1,9 @@
 #include <filesystem>
 #include <iostream>
+#include <sstream>
+#include <string>
 #include <thread>
+#include "OptionTypes.h"
 #include "Utils.h"
 
 std::filesystem::path getRootDirectory() {
@@ -39,4 +42,40 @@ void runGraphPlotter() {
     catch (...) {
         std::cerr << "Unknown error while launching graphPlotter.py." << std::endl;
     }
+}
+
+std::string prepareForOutput(double number) {
+    double roundedNumber = std::floor(number * pow(10, NUM_DECIMAL_PLACES_OUTPUT) + 0.5) / pow(10,NUM_DECIMAL_PLACES_OUTPUT);
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(NUM_DECIMAL_PLACES_OUTPUT) << roundedNumber;
+    return stream.str();
+}
+
+void outputRow(std::string key, std::string value, bool rewriteLine) {
+    if (rewriteLine) {
+        std::cout << "\r";
+        std::cout << std::left << std::setw(25) << key << ":" << std::right
+        << std::setw(33) << std::fixed << value;
+    }
+    else {
+        std::cout << std::left << std::setw(25) << key << ":" << std::right
+        << std::setw(24) << std::fixed << value << std::endl;
+    }
+}
+
+void outputResults(OptionResult& params) {
+    std::cout << std::endl;
+
+    outputRow("Option value", prepareForOutput(params.averagePayoff), false);
+    outputRow("Standard error", prepareForOutput(params.standardError), false);
+
+    const std::string roundedLowerBound = prepareForOutput(std::get<0>(params.confidenceInterval));
+    const std::string roundedUpperBound = prepareForOutput(std::get<1>(params.confidenceInterval));
+    outputRow("95% confidence interval", "[" + roundedLowerBound + ", " + roundedUpperBound + "]", false);
+
+    outputRow("Delta", prepareForOutput(params.greeks.delta), false);
+    outputRow("Gamma", prepareForOutput(params.greeks.gamma), false);
+    outputRow("Vega", prepareForOutput(params.greeks.vega), false);
+    outputRow("Rho", prepareForOutput(params.greeks.rho), false);
+    outputRow("Theta", prepareForOutput(params.greeks.theta), false);
 }

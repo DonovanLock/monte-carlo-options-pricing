@@ -1,6 +1,5 @@
 # monte-carlo-options-pricing
-This program uses Monte Carlo modelling methods to price European options, and works on Windows
-machines. To price an option, the following parameters are required:
+This program uses Monte Carlo modelling methods to price European options. To price an option, the following parameters are required:
 - Spot price
 - Strike price
 - Time to expiry

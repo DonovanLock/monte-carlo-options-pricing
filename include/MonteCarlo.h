@@ -12,6 +12,7 @@ constexpr double DT = 1.0 / NUM_YEARLY_WORKING_DAYS;
 constexpr double VOLATILITY_JUMP = 0.01;
 constexpr double RISK_FREE_RATE_JUMP = 0.001;
 constexpr double TIME_TO_MATURITY_JUMP = 1.0 / 365;
+constexpr double CONFIDENCE_BOUND_FACTOR = 1.95996;
 
 std::vector<std::vector<double>> generateRandomNormals(int numSimulations, int numSteps);
 
@@ -19,9 +20,11 @@ std::tuple<double, double> simulatePath(const OptionParams& params, const std::v
 
 double calculatePayoff(const OptionParams& params, std::tuple<double, double> simulatedPrices);
 
-std::vector<double> simulatePayoffs(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, bool graphPaths);
+std::vector<double> simulatePayoffs(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, bool graphPaths, std::string logText);
 
 double calculateStandardError(const std::vector<double>& payoffs, double averagePayoff);
+
+std::tuple<double,double> calculateConfidenceInterval(double averagePayoff, double standardError);
 
 std::tuple<double, double> calculateDeltaAndGamma(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, double optionPrice);
 

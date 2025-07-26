@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <numeric>
 #include <random>
 #include <string>
@@ -70,15 +71,22 @@ double calculatePayoff(const OptionParams& params, std::tuple<double, double> si
     return 0.5 * (payoff + antitheticPayoff);
 }
 
-std::vector<double> simulatePayoffs(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, bool graphPaths) {
+std::vector<double> simulatePayoffs(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, bool graphPaths, std::string logText) {
     int numSimulations = int (randomNormals.size());
     std::vector<double> payoffSamples(numSimulations);
     std::string graphData = "";
+    int percentageComplete = 0;
 
     for (int i = 0; i < numSimulations; i++) {
+        if (percentageComplete < (int) (i) * 100 / numSimulations) {
+            percentageComplete = (i) * 100 / numSimulations;
+            outputRow(logText, "\033[33m" + std::to_string(percentageComplete) + "%\033[0m", true);
+        }
         std::tuple<double, double> finalPrices = simulatePath(params, randomNormals[i], graphData, i < NUM_GRAPHED_PATHS && graphPaths);
         payoffSamples[i] = calculatePayoff(params, finalPrices);
     }
+    outputRow(logText, "\033[32m100%\033[0m", true);
+    std::cout << std::endl;
 
     if (graphPaths) {
         std::filesystem::path outputDirectory = getRootDirectory() / "output";
@@ -103,17 +111,23 @@ double calculateStandardError(const std::vector<double>& payoffs, double average
     return sqrt(estimatorVariance);
 }
 
+std::tuple<double,double> calculateConfidenceInterval(double averagePayoff, double standardError) {
+    const double lowerBound = averagePayoff - (standardError * CONFIDENCE_BOUND_FACTOR);
+    const double upperBound = averagePayoff + (standardError * CONFIDENCE_BOUND_FACTOR);
+    return std::make_tuple(lowerBound, upperBound);
+}
+
 std::tuple<double, double> calculateDeltaAndGamma(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, double optionPrice) {
     const double spotPriceJump = params.spotPrice * 0.001;
     OptionParams spotPriceUpOption = params;
     spotPriceUpOption.spotPrice = params.spotPrice + spotPriceJump;
-    std::vector<double> spotPriceUpPayoffSamples = simulatePayoffs(spotPriceUpOption, randomNormals, false);
+    std::vector<double> spotPriceUpPayoffSamples = simulatePayoffs(spotPriceUpOption, randomNormals, false, "Calculating delta");
     double averageSpotPriceUpPayoff = std::accumulate(spotPriceUpPayoffSamples.begin(), spotPriceUpPayoffSamples.end(), 0.0) / spotPriceUpPayoffSamples.size();
     double delta = (averageSpotPriceUpPayoff - optionPrice) / spotPriceJump;
 
     OptionParams spotPriceDownOption = params;
     spotPriceDownOption.spotPrice = params.spotPrice - spotPriceJump;
-    std::vector<double> spotPriceDownPayoffSamples = simulatePayoffs(spotPriceDownOption, randomNormals, false);
+    std::vector<double> spotPriceDownPayoffSamples = simulatePayoffs(spotPriceDownOption, randomNormals, false, "Calculating gamma");
     double averageSpotPriceDownPayoff = std::accumulate(spotPriceDownPayoffSamples.begin(), spotPriceDownPayoffSamples.end(), 0.0) / spotPriceDownPayoffSamples.size();
     double gamma = (averageSpotPriceUpPayoff - (2 * optionPrice) + averageSpotPriceDownPayoff) / pow(spotPriceJump, 2);
 
@@ -123,7 +137,7 @@ std::tuple<double, double> calculateDeltaAndGamma(const OptionParams& params, co
 double calculateVega(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, double optionPrice) {
     OptionParams volatilityUpOption = params;
     volatilityUpOption.volatility = params.volatility + VOLATILITY_JUMP;
-    std::vector<double> volatilityUpPayoffSamples = simulatePayoffs(volatilityUpOption, randomNormals, false);
+    std::vector<double> volatilityUpPayoffSamples = simulatePayoffs(volatilityUpOption, randomNormals, false, "Calculating vega");
     double averageVolatilityUpPayoff = std::accumulate(volatilityUpPayoffSamples.begin(), volatilityUpPayoffSamples.end(), 0.0) / volatilityUpPayoffSamples.size();
     double vega = (averageVolatilityUpPayoff - optionPrice) / VOLATILITY_JUMP;
 
@@ -133,7 +147,7 @@ double calculateVega(const OptionParams& params, const std::vector<std::vector<d
 double calculateRho(const OptionParams& params, const std::vector<std::vector<double>>& randomNormals, double optionPrice) {
     OptionParams riskFreeRateUpOption = params;
     riskFreeRateUpOption.riskFreeRate = params.riskFreeRate + RISK_FREE_RATE_JUMP;
-    std::vector<double> riskFreeRateUpPayoffSamples = simulatePayoffs(riskFreeRateUpOption, randomNormals, false);
+    std::vector<double> riskFreeRateUpPayoffSamples = simulatePayoffs(riskFreeRateUpOption, randomNormals, false, "Calculating rho");
     double averageRiskFreeRateUpPayoff = std::accumulate(riskFreeRateUpPayoffSamples.begin(), riskFreeRateUpPayoffSamples.end(), 0.0) / riskFreeRateUpPayoffSamples.size();
     double rho = (averageRiskFreeRateUpPayoff - optionPrice) / RISK_FREE_RATE_JUMP;
 
@@ -160,7 +174,7 @@ double calculateTheta(const OptionParams& params, const std::vector<std::vector<
         }
     }
 
-    std::vector<double> timeToMaturityUpPayoffSamples = simulatePayoffs(timeToMaturityUpOption, randomNormalsExtended, false);
+    std::vector<double> timeToMaturityUpPayoffSamples = simulatePayoffs(timeToMaturityUpOption, randomNormalsExtended, false, "Calculating theta");
     double averageTimeToMaturityUpPayoff = std::accumulate(timeToMaturityUpPayoffSamples.begin(), timeToMaturityUpPayoffSamples.end(), 0.0) / timeToMaturityUpPayoffSamples.size();
     double theta = -(averageTimeToMaturityUpPayoff - optionPrice) / TIME_TO_MATURITY_JUMP;
 
@@ -180,11 +194,12 @@ Greeks calculateGreeks(const OptionParams& params, const std::vector<std::vector
 OptionResult runMonteCarloSimulation(const OptionParams& params) {
     const int numSteps = int (params.timeToMaturity * NUM_YEARLY_WORKING_DAYS);
     std::vector<std::vector<double>> randomNormals = generateRandomNormals(NUM_SIMULATIONS, numSteps);
-    std::vector<double> payoffSamples = simulatePayoffs(params, randomNormals, true);
+    std::vector<double> payoffSamples = simulatePayoffs(params, randomNormals, true, "Simulating paths");
 
     const double averagePayoff = std::accumulate(payoffSamples.begin(), payoffSamples.end(), 0.0) / payoffSamples.size();
     const double standardError = calculateStandardError(payoffSamples, averagePayoff);
-    Greeks greeks = calculateGreeks(params, randomNormals, averagePayoff);
+    const std::tuple<double, double> confidenceInterval = calculateConfidenceInterval(averagePayoff, standardError);
+    const Greeks greeks = calculateGreeks(params, randomNormals, averagePayoff);
 
-    return { averagePayoff, standardError, greeks };
+    return { averagePayoff, standardError, confidenceInterval, greeks };
 }
