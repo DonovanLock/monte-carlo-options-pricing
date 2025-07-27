@@ -1,3 +1,0 @@
-C:/Repos/monte-carlo-options-pricing/build/CMakeFiles/MonteCarlo.dir
-C:/Repos/monte-carlo-options-pricing/build/CMakeFiles/ALL_BUILD.dir
-C:/Repos/monte-carlo-options-pricing/build/CMakeFiles/ZERO_CHECK.dir
